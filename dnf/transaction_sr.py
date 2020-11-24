@@ -187,7 +187,6 @@ class TransactionReplay(object):
     def __init__(
         self,
         base,
-        fn,
         ignore_extras=False,
         ignore_installed=False,
         skip_unavailable=False
@@ -201,7 +200,7 @@ class TransactionReplay(object):
         """
 
         self._base = base
-        self._filename = fn
+        self._filename = ""
         self._ignore_installed = ignore_installed
         self._ignore_extras = ignore_extras
         self._skip_unavailable = skip_unavailable
@@ -213,25 +212,31 @@ class TransactionReplay(object):
         self._nevra_reason_cache = {}
         self._warnings = []
 
+    def load_from_file(self, fn):
+        self._filename = fn
         with open(fn, "r") as f:
             try:
-                self._replay_data = json.load(f)
+                replay_data = json.load(f)
             except json.decoder.JSONDecodeError as e:
                 raise TransactionFileError(fn, str(e) + ".")
 
         try:
-            self._verify_toplevel_json(self._replay_data)
-
-            self._rpms = self._replay_data.get("rpms", [])
-            self._assert_type(self._rpms, list, "rpms", "array")
-
-            self._groups = self._replay_data.get("groups", [])
-            self._assert_type(self._groups, list, "groups", "array")
-
-            self._environments = self._replay_data.get("environments", [])
-            self._assert_type(self._environments, list, "environments", "array")
+            self.load_from_dict(replay_data)
         except TransactionError as e:
             raise TransactionFileError(fn, e)
+
+    def load_from_dict(self, data):
+        self._replay_data = data
+        self._verify_toplevel_json(self._replay_data)
+
+        self._rpms = self._replay_data.get("rpms", [])
+        self._assert_type(self._rpms, list, "rpms", "array")
+
+        self._groups = self._replay_data.get("groups", [])
+        self._assert_type(self._groups, list, "groups", "array")
+
+        self._environments = self._replay_data.get("environments", [])
+        self._assert_type(self._environments, list, "environments", "array")
 
     def _raise_or_warn(self, warn_only, msg):
         if warn_only:

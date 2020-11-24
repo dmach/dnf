@@ -268,11 +268,11 @@ class HistoryCommand(commands.Command):
         if vcmd == 'replay':
             self.replay = TransactionReplay(
                 self.base,
-                self.opts.transaction_filename,
                 ignore_installed = self.opts.ignore_installed,
                 ignore_extras = self.opts.ignore_extras,
                 skip_unavailable = self.opts.skip_unavailable
             )
+            self.replay.load_from_file(self.opts.transaction_filename)
             self.replay.run()
         else:
             tids, merged_tids = self._args2transaction_ids()
