@@ -160,7 +160,7 @@ class HistoryCommand(commands.Command):
         return dnf.cli.commands.Command.get_error_output(self, error)
 
     def _hcmd_redo(self, extcmds):
-        old = self.base.history_get_transaction(extcmds)
+        old = self.history_get_transaction(extcmds)
         if old is None:
             return 1, ['Failed history redo']
 
@@ -169,14 +169,33 @@ class HistoryCommand(commands.Command):
         self.replay.load_from_dict(data)
         self.replay.run()
 
+    def _history_get_transactions(self, extcmds):
+        if not extcmds:
+            logger.critical(_('No transaction ID given'))
+            return None
+
+        old = self.base.history.old(extcmds)
+        if not old:
+            logger.critical(_('Not found given transaction ID'))
+            return None
+        return old
+
+    def history_get_transaction(self, extcmds):
+        old = self._history_get_transactions(extcmds)
+        if old is None:
+            return None
+        if len(old) > 1:
+            logger.critical(_('Found more than one transaction ID!'))
+        return old[0]
+
     def _hcmd_undo(self, extcmds):
-        old = self.base.history_get_transaction(extcmds)
+        old = self.history_get_transaction(extcmds)
         if old is None:
             return 1, ['Failed history undo']
         self._revert_transaction(old)
 
     def _hcmd_rollback(self, extcmds):
-        old = self.base.history_get_transaction(extcmds)
+        old = self.history_get_transaction(extcmds)
         if old is None:
             return 1, ['Failed history rollback']
         last = self.base.history.last()
@@ -334,11 +353,10 @@ class HistoryCommand(commands.Command):
             elif vcmd == 'userinstalled':
                 ret = self._hcmd_userinstalled()
             elif vcmd == 'store':
-                transactions = self.output.history.old(tids)
-                if not transactions:
-                    raise dnf.cli.CliError(_('Transaction ID "{id}" not found.').format(id=tids[0]))
-
-                data = serialize_transaction(transactions[0])
+                tid = self.history_get_transaction(tids)
+                if not tid:
+                    sys.exit(1)
+                data = serialize_transaction(tid)
                 try:
                     filename = self.opts.output if self.opts.output is not None else "transaction.json"
 
@@ -384,4 +402,4 @@ class HistoryCommand(commands.Command):
                 _("Warning, the following problems occurred while replaying the transaction:")
             )
             for w in warnings:
-                logger.log(dnf.logging.WARNING, "  " + w)
+                logger.log(dnf.logging.WARNING, "  " + str(w))
