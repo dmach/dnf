@@ -246,13 +246,22 @@ class HistoryCommand(commands.Command):
                     # erase repo_id, because it's not possible to perform forward actions from the @System repo
                     ti["repo_id"] = None
 
+        def print_error(error):
+            if isinstance(error, dnf.transaction_sr.PackageNotFoundError):
+                print(_("No package %s available." % error.nevra), file=sys.stderr)
+            else:
+                print(str(error), file=sys.stderr)
+
         self.replay = TransactionReplay(self.base, ignore_installed=True, ignore_extras=True, skip_unavailable=self.opts.skip_unavailable)
         try:
             self.replay.load_from_dict(data)
             self.replay.run()
+            for error in self.replay.get_warnings():
+                print_error(error)
+            self.replay._warnings = []
         except dnf.transaction_sr.TransactionFileError as ex:
             for error in ex.errors:
-                print(str(error), file=sys.stderr)
+                print_error(error)
             raise dnf.exceptions.PackageNotFoundError(_('no package matched'))
 
     def _hcmd_userinstalled(self):

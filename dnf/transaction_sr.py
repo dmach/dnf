@@ -48,6 +48,15 @@ class TransactionError(dnf.exceptions.Error):
         super(TransactionError, self).__init__(msg)
 
 
+class PackageNotFoundError(TransactionError):
+    def __init__(self, nevra):
+        self.nevra = nevra
+        super(TransactionError, self).__init__(str(self))
+
+    def __str__(self):
+        return _('Cannot find rpm nevra "{nevra}".').format(nevra=self.nevra)
+
+
 class TransactionFileError(dnf.exceptions.Error):
     def __init__(self, filename, errors):
         """
@@ -248,8 +257,10 @@ class TransactionReplay(object):
     def _raise_or_warn(self, warn_only, msg):
         if warn_only:
             self._warnings.append(msg)
+        elif isinstance(msg, Exception):
+            raise msg
         else:
-            raise TransactionError(msg)
+            raise TransactionError(str(msg))
 
     def _assert_type(self, value, t, id, expected):
         if not isinstance(value, t):
@@ -309,7 +320,7 @@ class TransactionReplay(object):
                 query = query_repo.union(query.installed())
 
         if not query:
-            self._raise_or_warn(self._skip_unavailable, _('Cannot find rpm nevra "{nevra}".').format(nevra=nevra))
+            self._raise_or_warn(self._skip_unavailable, PackageNotFoundError(nevra))
             return
 
         # a cache to check no extra packages were pulled into the transaction
