@@ -402,4 +402,4 @@ class HistoryCommand(commands.Command):
                 _("Warning, the following problems occurred while replaying the transaction:")
             )
             for w in warnings:
-                logger.log(dnf.logging.WARNING, "  " + str(w))
+                logger.log(dnf.logging.WARNING, "  " + w)
