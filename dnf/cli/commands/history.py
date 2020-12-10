@@ -173,7 +173,7 @@ class HistoryCommand(commands.Command):
         old = self.base.history_get_transaction(extcmds)
         if old is None:
             return 1, ['Failed history undo']
-        self._revert_transaction(old)
+        return self._revert_transaction(old)
 
     def _hcmd_rollback(self, extcmds):
         old = self.base.history_get_transaction(extcmds)
