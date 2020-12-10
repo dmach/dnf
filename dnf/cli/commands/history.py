@@ -247,13 +247,8 @@ class HistoryCommand(commands.Command):
                     ti["repo_id"] = None
 
         self.replay = TransactionReplay(self.base, ignore_installed=True, ignore_extras=True, skip_unavailable=self.opts.skip_unavailable)
-        try:
-            self.replay.load_from_dict(data)
-            self.replay.run()
-        except dnf.transaction_sr.TransactionFileError as ex:
-            for error in ex.errors:
-                print(str(error), file=sys.stderr)
-            raise dnf.exceptions.PackageNotFoundError(_('no package matched'))
+        self.replay.load_from_dict(data)
+        self.replay.run()
 
     def _hcmd_userinstalled(self):
         """Execute history userinstalled command."""
@@ -383,7 +378,11 @@ class HistoryCommand(commands.Command):
         if code == 2:
             self.cli.demands.resolving = True
         elif code != 0:
-            raise dnf.exceptions.Error(strs[0])
+            if len(strs) == 1:
+                msg = strs[0]
+            else:
+                msg = "\n  - " + "\n  - ".join(strs)
+            raise dnf.exceptions.Error(msg)
 
     def run_resolved(self):
         if self.opts.transactions_action not in ("replay", "redo", "rollback", "undo"):
@@ -399,7 +398,7 @@ class HistoryCommand(commands.Command):
         if warnings:
             logger.log(
                 dnf.logging.WARNING,
-                _("Warning, the following problems occurred while replaying the transaction:")
+                _("Warning: The following problems occurred while creating a transaction:")
             )
             for w in warnings:
                 logger.log(dnf.logging.WARNING, "  " + w)
