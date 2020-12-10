@@ -197,7 +197,7 @@ class HistoryCommand(commands.Command):
                 else:
                     merged_trans.merge(trans)
 
-        self._revert_transaction(merged_trans)
+        return self._revert_transaction(merged_trans)
 
     def _revert_transaction(self, trans):
         action_map = {
